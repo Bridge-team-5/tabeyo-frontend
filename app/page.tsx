@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useLanguage } from "@/context/language-context";
 import { languages } from "@/constants/language";
+import Image from "next/image";
 
 export default function HomePage() {
   const [open, setOpen] = useState(false);
@@ -77,9 +78,16 @@ export default function HomePage() {
         {/* 중앙 콘텐츠 */}
         <div className="flex flex-col items-center gap-8 animate-fadein fill-mode-both">
           <div className="flex flex-col items-center gap-2.5 text-center">
-            <h1 className="text-[40px] font-extrabold tracking-tight text-primary leading-none">
-              TABEYO
-            </h1>
+            <div className="relative">
+              <Image
+                  src="/logo.png"
+                  alt="TABEYO Logo"
+                  width={220}
+                  height={40}
+                  priority
+                  className="h-auto w-auto object-contain"
+              />
+            </div>
             <p className="text-caption text-muted tracking-wide">
               {tx.homeSubtitle}
             </p>
@@ -89,7 +97,7 @@ export default function HomePage() {
               href="/camera"
               className="flex items-center gap-2.5 rounded-full bg-primary px-9 py-[18px] text-title font-bold text-surface shadow-md transition-all active:scale-95 active:shadow-sm"
           >
-            <span>{tx.homeScanBtn}</span>
+          <span>{tx.homeScanBtn}</span>
             <Camera size={20} className="text-surface" />
           </Link>
         </div>
