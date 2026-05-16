@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, ArrowRight, Camera } from "lucide-react";
-import { uploadAndAnalyze } from "@/lib/api";
+import { createSession, issueUploadUrls, uploadToGcs, analyzeSession } from "@/lib/api";
 import { useLanguage } from "@/context/language-context";
 
 const MAX_PHOTOS = 10;
@@ -22,7 +22,6 @@ export default function CameraPage() {
   const [cameraError, setCameraError] = useState(false);
   const [flash, setFlash] = useState(false);
 
-  // 카메라 시작
   useEffect(() => {
     async function startCamera() {
       try {
@@ -45,7 +44,6 @@ export default function CameraPage() {
     };
   }, []);
 
-  // 사진 촬영
   const capture = useCallback(() => {
     if (photos.length >= MAX_PHOTOS) return;
     const video = videoRef.current;
@@ -57,7 +55,6 @@ export default function CameraPage() {
     canvas.getContext("2d")?.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
-    // dataUrl → File 변환
     const [header, data] = dataUrl.split(",");
     const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
     const bytes = atob(data);
@@ -77,26 +74,30 @@ export default function CameraPage() {
     });
   }, [photos.length]);
 
-  // 사진 삭제
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 업로드 + 분석
   const handleSubmit = async () => {
     if (photos.length === 0 || isLoading) return;
     setIsLoading(true);
 
     try {
-      setLoadingMsg("세션 생성 중...");
       const files = photos.map((p) => p.file);
 
-      setLoadingMsg("이미지 업로드 중...");
-      const session = await uploadAndAnalyze(files, language);
+      setLoadingMsg("세션 생성 중...");
+      const sessionId = await createSession(language);
+      sessionStorage.setItem("sessionId", sessionId);
 
-      setLoadingMsg("분석 완료!");
-      sessionStorage.setItem("sessionId", session.id);
-      sessionStorage.setItem("menuData", JSON.stringify(session));
+      setLoadingMsg("이미지 업로드 중...");
+      const uploads = await issueUploadUrls(sessionId, files);
+      await Promise.all(uploads.map((u, i) => uploadToGcs(u.uploadUrl, files[i])));
+
+      setLoadingMsg("분석 시작 중...");
+      await analyzeSession(sessionId);
+
+      // ✅ 분석 요청만 보내고 바로 메뉴 페이지로 이동
+      // 나머지 폴링은 menu 페이지에서 스켈레톤 UI로 처리
       router.push("/menu");
     } catch (err) {
       console.error(err);
@@ -122,7 +123,6 @@ export default function CameraPage() {
             backgroundColor: "#000",
           }}
       >
-        {/* 플래시 효과 */}
         {flash && (
             <div
                 style={{
@@ -136,7 +136,6 @@ export default function CameraPage() {
             />
         )}
 
-        {/* 카메라 뷰파인더 */}
         <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
           {cameraError ? (
               <div
@@ -166,7 +165,6 @@ export default function CameraPage() {
 
         <canvas ref={canvasRef} style={{ display: "none" }} />
 
-        {/* 하단 컨트롤 */}
         <div
             style={{
               display: "flex",
@@ -178,14 +176,12 @@ export default function CameraPage() {
               backdropFilter: "blur(8px)",
             }}
         >
-          {/* 로딩 메시지 */}
           {isLoading && (
               <p style={{ fontSize: "14px", color: "rgba(250,250,250,0.8)", margin: 0 }}>
                 {loadingMsg}
               </p>
           )}
 
-          {/* 촬영 버튼 */}
           <button
               onClick={capture}
               disabled={!canCapture || isLoading}
@@ -202,7 +198,6 @@ export default function CameraPage() {
               }}
           />
 
-          {/* 썸네일 + 전송 버튼 */}
           {photos.length > 0 && (
               <div style={{ display: "flex", width: "100%", alignItems: "center", gap: "12px" }}>
                 <div

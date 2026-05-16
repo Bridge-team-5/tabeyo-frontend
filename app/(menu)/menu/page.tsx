@@ -8,12 +8,10 @@ import {
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
 import { languages } from "@/constants/language";
-import { requestRecommend, pollImages } from "@/lib/api";
+import { requestRecommend, pollImages, pollSession } from "@/lib/api";
 import type { MenuItemDto } from "@/lib/api";
 import type { MenuItem, MenuResponse, RecommendItem } from "@/types/menu";
 
-// 백엔드 raw 데이터 → MenuItem 정규화
-// id: number→string, imageUrl(단수)→imageUrls(배열)
 function normalizeMenuItem(raw: MenuItemDto): MenuItem {
   return {
     ...raw,
@@ -53,17 +51,37 @@ function MenuCardSkeleton() {
 function MenuListSkeleton() {
   return (
       <div className="relative min-h-screen bg-background">
-        {/* 헤더 */}
         <div className="sticky top-0 z-10 flex items-center justify-between bg-background/80 px-5 py-4 backdrop-blur-sm border-b border-black/[0.06]">
           <Skeleton className="h-6 w-6" />
           <Skeleton className="h-8 w-24 !rounded-full" />
         </div>
-        {/* 카드 목록 */}
         <div className="flex flex-col gap-3 px-4 py-4 pb-28">
           {Array.from({ length: 5 }).map((_, i) => (
               <MenuCardSkeleton key={i} />
           ))}
         </div>
+      </div>
+  );
+}
+
+// ── 추천 로딩 오버레이 ────────────────────────────────────────
+function RecommendLoadingOverlay() {
+  return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-4 rounded-3xl bg-surface px-10 py-8 shadow-xl">
+          <div
+              style={{
+                height: "36px",
+                width: "36px",
+                borderRadius: "9999px",
+                border: "3px solid #E5E5E5",
+                borderTopColor: "#1E1E1E",
+                animation: "spin 0.7s linear infinite",
+              }}
+          />
+          <p className="text-caption font-semibold text-primary">추천 메뉴 분석 중...</p>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
   );
 }
@@ -102,7 +120,6 @@ function MenuCard({
           className="flex items-center gap-3 rounded-2xl bg-surface p-3 cursor-pointer active:opacity-80 transition-opacity"
           onClick={onClick}
       >
-        {/* 사진 */}
         <div className="h-[90px] w-[90px] shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
           {item.imageUrls?.[0] ? (
               <img
@@ -115,7 +132,6 @@ function MenuCard({
           )}
         </div>
 
-        {/* 텍스트 */}
         <div className="flex-1 min-w-0">
           <p className="text-body font-bold text-primary leading-tight truncate">
             {item.translatedName || item.originalName}
@@ -137,7 +153,6 @@ function MenuCard({
           )}
         </div>
 
-        {/* + 버튼 */}
         <button
             onClick={(e) => { e.stopPropagation(); onAdd(); }}
             className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
@@ -164,23 +179,13 @@ function CartModal({ onClose }: { onClose: () => void }) {
   const currency = cart[0]?.item.price.currency ?? "";
 
   return (
-      <div
-          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40"
-          onClick={onClose}
-      >
-        <div
-            className="flex flex-col rounded-t-3xl bg-surface max-h-[80svh]"
-            onClick={(e) => e.stopPropagation()}
-        >
-          {/* 헤더 */}
+      <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onClose}>
+        <div className="flex flex-col rounded-t-3xl bg-surface max-h-[80svh]" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-black/[0.06]">
             <h2 className="text-title font-bold text-primary">{tx.cart}</h2>
-            <button onClick={onClose}>
-              <X size={20} className="text-muted" />
-            </button>
+            <button onClick={onClose}><X size={20} className="text-muted" /></button>
           </div>
 
-          {/* 아이템 목록 */}
           <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3">
             {cart.length === 0 ? (
                 <p className="text-center text-muted py-10 text-caption">{tx.cartEmpty}</p>
@@ -189,44 +194,24 @@ function CartModal({ onClose }: { onClose: () => void }) {
                     <div key={item.id} className="flex items-center gap-3">
                       <div className="h-14 w-14 shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
                         {item.imageUrls?.[0] ? (
-                            <img
-                                src={item.imageUrls![0]}
-                                alt={item.translatedName || item.originalName}
-                                className="h-full w-full object-cover"
-                            />
+                            <img src={item.imageUrls![0]} alt={item.translatedName || item.originalName} className="h-full w-full object-cover" />
                         ) : (
                             <span className="text-tiny text-muted">photo</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-caption font-semibold text-primary truncate">
-                          {item.translatedName || item.originalName}
-                        </p>
-                        <p className="text-tiny text-muted">
-                          {item.price.currency} {item.price.amount.toLocaleString()}
-                        </p>
+                        <p className="text-caption font-semibold text-primary truncate">{item.translatedName || item.originalName}</p>
+                        <p className="text-tiny text-muted">{item.price.currency} {item.price.amount.toLocaleString()}</p>
                       </div>
-                      {/* 수량 조절 */}
                       <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => updateQuantity(item.id, -1)}
-                            className="h-7 w-7 rounded-full bg-background flex items-center justify-center active:scale-90 transition-transform"
-                        >
+                        <button onClick={() => updateQuantity(item.id, -1)} className="h-7 w-7 rounded-full bg-background flex items-center justify-center active:scale-90 transition-transform">
                           <Minus size={12} className="text-primary" />
                         </button>
-                        <span className="text-caption font-bold text-primary w-4 text-center">
-                    {quantity}
-                  </span>
-                        <button
-                            onClick={() => updateQuantity(item.id, +1)}
-                            className="h-7 w-7 rounded-full bg-background flex items-center justify-center active:scale-90 transition-transform"
-                        >
+                        <span className="text-caption font-bold text-primary w-4 text-center">{quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, +1)} className="h-7 w-7 rounded-full bg-background flex items-center justify-center active:scale-90 transition-transform">
                           <Plus size={12} className="text-primary" />
                         </button>
-                        <button
-                            onClick={() => removeFromCart(item.id)}
-                            className="ml-1 h-7 w-7 rounded-full bg-background flex items-center justify-center active:scale-90 transition-transform"
-                        >
+                        <button onClick={() => removeFromCart(item.id)} className="ml-1 h-7 w-7 rounded-full bg-background flex items-center justify-center active:scale-90 transition-transform">
                           <Trash2 size={12} className="text-muted" />
                         </button>
                       </div>
@@ -235,14 +220,11 @@ function CartModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {/* 합계 + 주문 버튼 */}
           {cart.length > 0 && (
               <div className="px-5 pt-3 pb-8 border-t border-black/[0.06] flex flex-col gap-3">
                 <div className="flex justify-between">
                   <span className="text-caption text-muted">{tx.total}</span>
-                  <span className="text-body font-bold text-primary">
-                {currency} {total.toLocaleString()}
-              </span>
+                  <span className="text-body font-bold text-primary">{currency} {total.toLocaleString()}</span>
                 </div>
                 <button
                     onClick={() => {
@@ -280,14 +262,8 @@ function RecommendInputModal({
       "flex-1 rounded-xl bg-background px-3 py-2 text-caption text-primary outline-none placeholder:text-muted/50 border border-muted/20 focus:border-primary transition-colors";
 
   return (
-      <div
-          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40"
-          onClick={onClose}
-      >
-        <div
-            className="flex flex-col gap-3 rounded-t-3xl bg-surface px-4 pt-4 pb-8 max-h-[90svh] overflow-y-auto w-full"
-            onClick={(e) => e.stopPropagation()}
-        >
+      <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onClose}>
+        <div className="flex flex-col gap-3 rounded-t-3xl bg-surface px-4 pt-4 pb-8 max-h-[90svh] overflow-y-auto w-full" onClick={(e) => e.stopPropagation()}>
           {[
             { label: tx.allergy, value: allergy, set: setAllergy },
             { label: tx.budget, value: budget, set: setBudget },
@@ -296,14 +272,9 @@ function RecommendInputModal({
           ].map(({ label, value, set }) => (
               <div key={label} className="flex items-center gap-3">
                 <span className="w-24 text-caption font-semibold text-primary shrink-0">{label}</span>
-                <input
-                    className={inputClass + "min-w-0 w-0"}
-                    value={value}
-                    onChange={(e) => set(e.target.value)}
-                />
+                <input className={inputClass + " min-w-0 w-0"} value={value} onChange={(e) => set(e.target.value)} />
               </div>
           ))}
-
           <button
               onClick={() => onSubmit({ allergy, budget, numPeople, etc })}
               className="mt-1 w-full rounded-full bg-primary py-3 text-body font-bold text-surface active:scale-[0.98] transition-transform"
@@ -327,34 +298,24 @@ function RecommendResultModal({
 }) {
   const { addToCart, cart } = useCart();
   const router = useRouter();
-  // id는 string으로 통일되어 있으므로 단순 비교
   const isInCart = (id: string) => cart.some((c) => c.item.id === id);
 
   return (
-      <div
-          className="fixed inset-0 z-50 flex flex-col justify-start pt-20 bg-black/30"
-          onClick={onClose}
-      >
-        <div
-            className="mx-4 rounded-3xl bg-surface flex flex-col max-h-[70svh]"
-            onClick={(e) => e.stopPropagation()}
-        >
+      <div className="fixed inset-0 z-50 flex flex-col justify-start pt-20 bg-black/30" onClick={onClose}>
+        <div className="mx-4 rounded-3xl bg-surface flex flex-col max-h-[70svh]" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-end px-4 pt-4 pb-2">
-            <button onClick={onClose}>
-              <X size={18} className="text-muted" />
-            </button>
+            <button onClick={onClose}><X size={18} className="text-muted" /></button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-5 flex flex-col gap-3">
             {results.map(({ id, reason }) => {
               const item = menuItems.find((m) => String(m.id) === String(id));
               if (!item) return null;
-              const foundItem: MenuItem = item;
               return (
                   <MenuCard
                       key={id}
-                      item={foundItem}
+                      item={item}
                       recommendReason={reason}
-                      onAdd={() => addToCart(foundItem)}
+                      onAdd={() => addToCart(item)}
                       added={isInCart(id)}
                       onClick={() => router.push(`/menu/detailed/${id}`)}
                   />
@@ -374,6 +335,8 @@ export default function MenuPage() {
   const tx = languages[language];
 
   const [menuData, setMenuData] = useState<MenuResponse | null>(null);
+  // analyzing: 카메라에서 넘어와 아직 READY 아닌 상태
+  const [analyzing, setAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
   const [showRecommendInput, setShowRecommendInput] = useState(false);
@@ -384,7 +347,10 @@ export default function MenuPage() {
 
   useEffect(() => {
     const raw = sessionStorage.getItem("menuData");
+    const sessionId = sessionStorage.getItem("sessionId");
+
     if (raw) {
+      // sessionStorage에 이미 완성된 데이터가 있으면 바로 표시
       try {
         const parsed = JSON.parse(raw);
         const normalized: MenuResponse = {
@@ -394,9 +360,33 @@ export default function MenuPage() {
         // normalize된 데이터로 덮어써서 detail 페이지도 올바른 구조를 읽게 함
         sessionStorage.setItem("menuData", JSON.stringify(normalized));
         setMenuData(normalized);
+        setLoading(false);
       } catch {
         console.error("Failed to parse menuData");
+        setLoading(false);
       }
+    } else if (sessionId) {
+      // 카메라에서 넘어온 직후 — menuData 없이 sessionId만 있는 상태
+      // 스켈레톤 보여주면서 READY까지 폴링
+      setAnalyzing(true);
+      setLoading(false);
+
+      pollSession(sessionId)
+      .then((session) => {
+        const normalized: MenuResponse = {
+          ...session,
+          detectedLanguage: session.detectedLanguage ?? "",
+          items: session.items.map(normalizeMenuItem),
+        };
+        sessionStorage.setItem("menuData", JSON.stringify(normalized));
+        setMenuData(normalized);
+      })
+      .catch((err) => {
+        console.error("분석 실패:", err);
+      })
+      .finally(() => {
+        setAnalyzing(false);
+      });
     } else {
       // 개발용 더미 데이터
       const dummyBoundingBox: [number, number, number, number] = [0, 0, 0, 0];
@@ -420,49 +410,46 @@ export default function MenuPage() {
           imageSearchQuery: `menu item ${i + 1}`,
         })),
       };
-      // 더미 데이터도 sessionStorage에 저장
       sessionStorage.setItem("menuData", JSON.stringify(dummy));
       setMenuData(dummy);
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
-  // 이미지 폴링: menuData가 세팅되면 sessionId가 있을 때만 시작
+  // 이미지 폴링
   useEffect(() => {
     const sessionId = sessionStorage.getItem("sessionId");
     if (!sessionId || !menuData) return;
 
-    // 이미 모든 아이템에 이미지가 있으면 폴링 불필요
     const alreadyFilled = menuData.items.every((item) => item.imageUrls?.length);
     if (alreadyFilled) return;
 
     pollImages(sessionId, menuData.items.length, (updatedDtos) => {
       setMenuData((prev) => {
         if (!prev) return prev;
-        // MenuItemDto(id: number) → MenuItem(id: string) 매핑해서 imageUrls만 업데이트
         const updatedItems = prev.items.map((item) => {
           const dto = updatedDtos.find((d) => String(d.id) === item.id);
           if (!dto?.imageUrls?.length) return item;
           return { ...item, imageUrls: dto.imageUrls };
         });
-        return { ...prev, items: updatedItems };
+        const next = { ...prev, items: updatedItems };
+        // 이미지 업데이트될 때마다 sessionStorage도 동기화
+        // 페이지 이동 후 돌아와도 다시 폴링 없이 바로 표시됨
+        sessionStorage.setItem("menuData", JSON.stringify(next));
+        return next;
       });
     });
-    // menuData.items.length가 바뀔 때만 재실행 (초기 1회)
   }, [menuData?.items.length]);
-
-  if (loading) return <MenuListSkeleton />;
 
   const handleRecommend = async (params: {
     allergy: string; budget: string; numPeople: string; etc: string;
   }) => {
     setShowRecommendInput(false);
-    setIsRecommending(true);
+    setIsRecommending(true); // 입력 모달 닫히고 로딩 오버레이 표시
     try {
       const sessionId = sessionStorage.getItem("sessionId");
       if (!sessionId) throw new Error("세션 ID 없음");
 
-      // budget, numPeople, etc → preferences 문자열로 병합
       const preferences = [
         params.budget && `budget: ${params.budget}`,
         params.numPeople && `people: ${params.numPeople}`,
@@ -471,10 +458,7 @@ export default function MenuPage() {
 
       const allergies = params.allergy || undefined;
 
-      // 백엔드 API 직접 호출 (api.ts의 requestRecommend 사용)
       const entries = await requestRecommend(sessionId, preferences, allergies);
-
-      // RecommendationEntry(itemId: number) → RecommendItem(id: string) 변환
       const results: RecommendItem[] = entries.map((e) => ({
         id: String(e.itemId),
         reason: e.reason,
@@ -488,8 +472,17 @@ export default function MenuPage() {
     }
   };
 
+  // 초기 로딩 (sessionStorage 읽기 전)
+  if (loading) return <MenuListSkeleton />;
+
+  // 카메라에서 넘어와 분석 중인 상태 — 스켈레톤으로 대기
+  if (analyzing) return <MenuListSkeleton />;
+
   return (
       <div className="relative min-h-screen bg-background">
+
+        {/* 추천 로딩 오버레이 — 모달 대신 전체 화면 위에 표시 */}
+        {isRecommending && <RecommendLoadingOverlay />}
 
         {/* 헤더 */}
         <div className="sticky top-0 z-10 flex items-center justify-between bg-background/80 px-5 py-4 backdrop-blur-sm border-b border-black/[0.06]">
@@ -501,7 +494,7 @@ export default function MenuPage() {
               disabled={isRecommending}
               className="rounded-full bg-primary px-5 py-2 text-caption font-bold text-surface active:scale-95 transition-transform disabled:opacity-50"
           >
-            {isRecommending ? "..." : tx.recommend}
+            {tx.recommend}
           </button>
         </div>
 

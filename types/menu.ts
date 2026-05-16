@@ -24,7 +24,11 @@ export type MenuItem = {
 };
 
 export type MenuResponse = {
-  detectedLanguage: string;
+  id?: string;
+  status?: string;
+  targetLanguage?: string;
+  restaurantName?: string;
+  detectedLanguage?: string;
   items: MenuItem[];
 };
 

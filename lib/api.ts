@@ -43,6 +43,12 @@ export type RecommendationEntry = {
   reason: string;
 };
 
+export type IssuedUpload = {
+  imageId: number;
+  gcsObject: string;
+  uploadUrl: string;
+};
+
 // ─── 1. 세션 생성 ─────────────────────────────────────────────────────────────
 
 export async function createSession(targetLanguage: string): Promise<string> {
@@ -58,13 +64,7 @@ export async function createSession(targetLanguage: string): Promise<string> {
 
 // ─── 2. 업로드 URL 발급 ────────────────────────────────────────────────────────
 
-type IssuedUpload = {
-  imageId: number;
-  gcsObject: string;
-  uploadUrl: string;
-};
-
-async function issueUploadUrls(
+export async function issueUploadUrls(
     sessionId: string,
     files: File[]
 ): Promise<IssuedUpload[]> {
@@ -81,7 +81,7 @@ async function issueUploadUrls(
 
 // ─── 3. GCS에 이미지 직접 업로드 ──────────────────────────────────────────────
 
-async function uploadToGcs(uploadUrl: string, file: File): Promise<void> {
+export async function uploadToGcs(uploadUrl: string, file: File): Promise<void> {
   const res = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type || "image/jpeg" },
@@ -92,7 +92,7 @@ async function uploadToGcs(uploadUrl: string, file: File): Promise<void> {
 
 // ─── 4. 분석 요청 ─────────────────────────────────────────────────────────────
 
-async function analyzeSession(sessionId: string): Promise<SessionResponse> {
+export async function analyzeSession(sessionId: string): Promise<SessionResponse> {
   const res = await fetch(`${BASE_URL}/sessions/${sessionId}/analyze`, {
     method: "POST",
   });
@@ -123,7 +123,7 @@ export async function pollSession(
   throw new Error("분석 시간 초과");
 }
 
-// ─── 이미지 폴링 ────────────────────────────────────────────────────────
+// ─── 이미지 폴링 ────────────────────────────────────────────
 
 export async function pollImages(
     sessionId: string,
@@ -143,7 +143,6 @@ export async function pollImages(
 
     onUpdate(session.items);
 
-    // 모든 아이템에 이미지가 채워지면 종료
     const filled = session.items.filter((item) => item.imageUrls?.length).length;
     if (filled >= itemCount) break;
   }
@@ -166,29 +165,16 @@ export async function requestRecommend(
   return data.recommendations as RecommendationEntry[];
 }
 
-// ─── 전체 업로드 + 분석 플로우 (카메라 페이지에서 호출) ──────────────────────────
+// ─── 전체 업로드 + 분석 플로우 (하위 호환용, 기존 코드에서 사용 시) ──────────────
 
 export async function uploadAndAnalyze(
     files: File[],
     targetLanguage: string
 ): Promise<SessionResponse> {
-  // 1. 세션 생성
   const sessionId = await createSession(targetLanguage);
-
-  // 2. 업로드 URL 발급
   const uploads = await issueUploadUrls(sessionId, files);
-
-  // 3. GCS에 병렬 업로드
-  await Promise.all(
-      uploads.map((u, i) => uploadToGcs(u.uploadUrl, files[i]))
-  );
-
-  // 4. 분석 시작
+  await Promise.all(uploads.map((u, i) => uploadToGcs(u.uploadUrl, files[i])));
   await analyzeSession(sessionId);
-
-  // 5. READY 될 때까지 폴링
   const session = await pollSession(sessionId);
-
-  // sessionId를 같이 저장해서 이후 추천/주문에 쓸 수 있게
   return { ...session, id: sessionId };
 }
