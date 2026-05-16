@@ -4,18 +4,21 @@ import { Camera, ChevronDown, Check } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useLanguage } from "@/context/language-context";
+import { languages } from "@/constants/language";
 
 export default function HomePage() {
   const [open, setOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
 
-  const languages = [
+  const languageOptions = [
     { code: "en", label: "English", flag: "🇺🇸" },
     { code: "ko", label: "한국어", flag: "🇰🇷" },
     { code: "ja", label: "日本語", flag: "🇯🇵" },
   ];
 
-  const currentLang = languages.find((l) => l.code === language);
+  const currentLang = languageOptions.find((l) => l.code === language);
+
+  const tx = languages[language] || languages.en;
 
   return (
       <main
@@ -44,7 +47,7 @@ export default function HomePage() {
           {open && (
               <div
                   className="absolute right-0 top-12 min-w-[150px] overflow-hidden rounded-2xl bg-surface shadow-lg">
-                {languages.map((lang, i) => {
+                {languageOptions.map((lang, i) => {
                   const isSelected = lang.code === language;
                   return (
                       <button
@@ -80,7 +83,7 @@ export default function HomePage() {
               TABEYO
             </h1>
             <p className="text-caption text-muted tracking-wide">
-              Scan any menu · Get instant explanations
+              {tx.homeSubtitle}
             </p>
           </div>
 
@@ -88,14 +91,14 @@ export default function HomePage() {
               href="/camera"
               className="flex items-center gap-2.5 rounded-full bg-primary px-9 py-[18px] text-title font-bold text-surface shadow-md transition-all active:scale-95 active:shadow-sm"
           >
-            <span>Scan Menu</span>
+            <span>{tx.homeScanBtn}</span>
             <Camera size={20} className="text-surface"/>
           </Link>
         </div>
 
         {/* 하단 힌트 */}
         <p className="absolute bottom-8 text-tiny text-muted/60 tracking-wide">
-          Point your camera at any restaurant menu
+          {tx.homeHint}
         </p>
       </main>
   );

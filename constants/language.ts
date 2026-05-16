@@ -1,5 +1,10 @@
 export const languages = {
   en: {
+    // Main page
+    homeSubtitle: "Scan any menu · Get instant explanations",
+    homeScanBtn: "Scan Menu",
+    homeHint: "Point your camera at any restaurant menu...",
+
     // Result page
     showToServer: "Show this page to server!",
     home: "Home",
@@ -29,6 +34,11 @@ export const languages = {
   },
 
   ko: {
+    // Main page
+    homeSubtitle: "메뉴판을 스캔하고 실시간 설명을 확인하세요",
+    homeScanBtn: "메뉴 스캔하기",
+    homeHint: "음식점 메뉴판을 카메라 화면에 비춰주세요...",
+
     // Result page
     showToServer: "이 화면을 직원에게 보여주세요!",
     home: "홈",
@@ -58,6 +68,11 @@ export const languages = {
   },
 
   ja: {
+    // Main page
+    homeSubtitle: "メニューをスキャンして、即時解説を確認しましょう",
+    homeScanBtn: "メニューをスキャン",
+    homeHint: "飲食店のメニューにカメラを向けてください...",
+
     // Result page
     showToServer: "この画面をスタッフに見せてください！",
     home: "ホーム",

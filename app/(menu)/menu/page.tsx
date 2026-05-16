@@ -7,50 +7,8 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
+import { languages } from "@/constants/language";
 import type { MenuItem, MenuResponse, RecommendItem } from "@/types/menu";
-
-// ── 다국어 텍스트 ──────────────────────────────────────────────
-const t = {
-  en: {
-    recommend: "Recommend for me!",
-    allergy: "Allergy",
-    budget: "Budget",
-    numPeople: "Number of ppl",
-    etc: "Etc.",
-    done: "Done",
-    cart: "Cart",
-    order: "I want to order!",
-    empty: "No items in cart",
-    allergyRisks: "Allergy risks",
-    total: "Total",
-  },
-  ko: {
-    recommend: "추천해줘!",
-    allergy: "알레르기",
-    budget: "예산",
-    numPeople: "인원 수",
-    etc: "기타",
-    done: "완료",
-    cart: "장바구니",
-    order: "주문할게요!",
-    empty: "담긴 메뉴가 없습니다",
-    allergyRisks: "알레르기 위험",
-    total: "합계",
-  },
-  ja: {
-    recommend: "おすすめして！",
-    allergy: "アレルギー",
-    budget: "予算",
-    numPeople: "人数",
-    etc: "その他",
-    done: "完了",
-    cart: "カート",
-    order: "注文したい！",
-    empty: "カートは空です",
-    allergyRisks: "アレルギー注意",
-    total: "合計",
-  },
-};
 
 // ── 고추 아이콘 ───────────────────────────────────────────────
 function Spiciness({ level }: { level: number }) {
@@ -79,7 +37,7 @@ function MenuCard({
   onClick: () => void;
 }) {
   const { language } = useLanguage();
-  const tx = t[language];
+  const tx = languages[language];
 
   return (
       <div
@@ -135,7 +93,7 @@ function MenuCard({
 function CartModal({ onClose }: { onClose: () => void }) {
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const { language } = useLanguage();
-  const tx = t[language];
+  const tx = languages[language];
   const router = useRouter();
 
   const total = cart.reduce((sum, c) => sum + c.item.price.amount * c.quantity, 0);
@@ -161,7 +119,7 @@ function CartModal({ onClose }: { onClose: () => void }) {
           {/* 아이템 목록 */}
           <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3">
             {cart.length === 0 ? (
-                <p className="text-center text-muted py-10 text-caption">{tx.empty}</p>
+                <p className="text-center text-muted py-10 text-caption">{tx.cartEmpty}</p>
             ) : (
                 cart.map(({ item, quantity }) => (
                     <div key={item.id} className="flex items-center gap-3">
@@ -240,7 +198,7 @@ function RecommendInputModal({
   onSubmit: (params: { allergy: string; budget: string; numPeople: string; etc: string }) => void;
 }) {
   const { language } = useLanguage();
-  const tx = t[language];
+  const tx = languages[language];
   const [allergy, setAllergy] = useState("");
   const [budget, setBudget] = useState("");
   const [numPeople, setNumPeople] = useState("");
@@ -344,7 +302,7 @@ export default function MenuPage() {
   const router = useRouter();
   const { addToCart, cart, totalCount } = useCart();
   const { language } = useLanguage();
-  const tx = t[language];
+  const tx = languages[language];
 
   const [menuData, setMenuData] = useState<MenuResponse | null>(null);
   const [showCart, setShowCart] = useState(false);
