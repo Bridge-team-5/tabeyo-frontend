@@ -346,7 +346,7 @@ function RecommendResultModal({
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-5 flex flex-col gap-3">
             {results.map(({ id, reason }) => {
-              const item = menuItems.find((m) => m.id === id);
+              const item = menuItems.find((m) => String(m.id) === String(id));
               if (!item) return null;
               const foundItem: MenuItem = item;
               return (
