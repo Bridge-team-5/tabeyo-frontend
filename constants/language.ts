@@ -17,6 +17,7 @@ export const languages = {
 
     // Menu page
     recommend: "Recommend for me!",
+    recommendAnalyze: "Analyzing menu...",
     allergy: "Allergy",
     budget: "Budget",
     numPeople: "Number of ppl",
@@ -57,6 +58,7 @@ export const languages = {
 
     // Menu page
     recommend: "추천해줘!",
+    recommendAnalyze: "추천 메뉴 분석 중...",
     allergy: "알레르기",
     budget: "예산",
     numPeople: "인원 수",
@@ -97,6 +99,7 @@ export const languages = {
 
     // Menu page
     recommend: "おすすめして！",
+    recommendAnalyze: "おすすめメニューを分析中...",
     allergy: "アレルギー",
     budget: "予算",
     numPeople: "人数",

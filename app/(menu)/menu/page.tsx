@@ -66,6 +66,9 @@ function MenuListSkeleton() {
 
 // ── 추천 로딩 오버레이 ────────────────────────────────────────
 function RecommendLoadingOverlay() {
+  const { language } = useLanguage();
+  const tx = languages[language];
+
   return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
         <div className="flex flex-col items-center gap-4 rounded-3xl bg-surface px-10 py-8 shadow-xl">
@@ -79,7 +82,7 @@ function RecommendLoadingOverlay() {
                 animation: "spin 0.7s linear infinite",
               }}
           />
-          <p className="text-caption font-semibold text-primary">추천 메뉴 분석 중...</p>
+          <p className="text-caption font-semibold text-primary">{tx.recommendAnalyze}</p>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
