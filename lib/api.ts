@@ -23,7 +23,7 @@ export type MenuItemDto = {
   dietaryFlags: string[];
   hasImageInMenu: boolean;
   boundingBox?: number[];
-  imageUrl?: string;
+  imageUrls?: string[];
   imageSearchQuery?: string;
   displayOrder: number;
 };
