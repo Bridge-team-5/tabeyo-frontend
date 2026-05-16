@@ -82,7 +82,7 @@ export default function HomePage() {
               <Image
                   src="/logo.png"
                   alt="TABEYO Logo"
-                  width={220}
+                  width={150}
                   height={40}
                   priority
                   className="h-auto w-auto object-contain"
