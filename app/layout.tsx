@@ -1,6 +1,15 @@
 import "./globals.css";
 import { LanguageProvider } from "@/context/language-context";
 import {CartProvider} from "@/context/cart-context";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "TABEYO",
+  description: "Scan any menu · Get instant explanations",
+  icons: {
+    icon: "/menu.png",
+  },
+};
 
 export default function RootLayout({
                                      children,

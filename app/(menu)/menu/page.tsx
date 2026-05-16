@@ -367,7 +367,7 @@ export default function MenuPage() {
       setMenuData({
         detectedLanguage: "ja",
         items: Array.from({ length: 6 }, (_, i) => ({
-          id: `item-${i}`,
+          id: `${i}`,
           originalName: `メニュー ${i + 1}`,
           translatedName: `Menu Item ${i + 1}`,
           category: "Main",
