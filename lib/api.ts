@@ -134,17 +134,20 @@ export async function pollImages(
 ) {
   const deadline = Date.now() + timeoutMs;
 
+  // [FIX 2] delay를 루프 끝으로 이동 — 첫 fetch가 즉시 실행됨
   while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, intervalMs));
-
     const res = await fetch(`${BASE_URL}/sessions/${sessionId}`);
     if (!res.ok) break;
     const session = (await res.json()) as SessionResponse;
 
     onUpdate(session.items);
 
-    const filled = session.items.filter((item) => item.imageUrls?.length || (item as any).imageUrl).length;
+    const filled = session.items.filter(
+        (item) => item.imageUrls?.length || (item as any).imageUrl
+    ).length;
     if (filled >= itemCount) break;
+
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
 

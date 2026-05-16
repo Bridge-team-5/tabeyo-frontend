@@ -308,15 +308,19 @@ function RecommendResultModal({
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-5 flex flex-col gap-3">
             {results.map(({ id, reason }) => {
+              // [FIX 3] 양쪽 모두 String()으로 변환해 타입 불일치 방지
               const item = menuItems.find((m) => String(m.id) === String(id));
-              if (!item) return null;
+              if (!item) {
+                console.warn(`[Recommend] item not found — id: ${id}, available ids:`, menuItems.map((m) => m.id));
+                return null;
+              }
               return (
                   <MenuCard
                       key={id}
                       item={item}
                       recommendReason={reason}
                       onAdd={() => addToCart(item)}
-                      added={isInCart(id)}
+                      added={isInCart(String(id))}
                       onClick={() => router.push(`/menu/detailed/${id}`)}
                   />
               );
@@ -335,7 +339,6 @@ export default function MenuPage() {
   const tx = languages[language];
 
   const [menuData, setMenuData] = useState<MenuResponse | null>(null);
-  // analyzing: 카메라에서 넘어와 아직 READY 아닌 상태
   const [analyzing, setAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
@@ -350,14 +353,12 @@ export default function MenuPage() {
     const sessionId = sessionStorage.getItem("sessionId");
 
     if (raw) {
-      // sessionStorage에 이미 완성된 데이터가 있으면 바로 표시
       try {
         const parsed = JSON.parse(raw);
         const normalized: MenuResponse = {
           ...parsed,
           items: parsed.items.map(normalizeMenuItem),
         };
-        // normalize된 데이터로 덮어써서 detail 페이지도 올바른 구조를 읽게 함
         sessionStorage.setItem("menuData", JSON.stringify(normalized));
         setMenuData(normalized);
         setLoading(false);
@@ -366,8 +367,7 @@ export default function MenuPage() {
         setLoading(false);
       }
     } else if (sessionId) {
-      // 카메라에서 넘어온 직후 — menuData 없이 sessionId만 있는 상태
-      // 스켈레톤 보여주면서 READY까지 폴링
+      // [FIX 1] 카메라에서 즉시 넘어온 상태 — analyzing 스켈레톤 보여주면서 폴링
       setAnalyzing(true);
       setLoading(false);
 
@@ -416,40 +416,47 @@ export default function MenuPage() {
     }
   }, []);
 
-  // 이미지 폴링
+  // [FIX 2] 이미지 폴링 — analyzing 끝난 후에도 재실행되도록 의존성에 analyzing 추가
   useEffect(() => {
     const sessionId = sessionStorage.getItem("sessionId");
-    if (!sessionId || !menuData) return;
+    if (!sessionId || !menuData || analyzing) return;
 
-    const alreadyFilled = menuData.items.every((item) => item.imageUrls?.length);
-    if (alreadyFilled) return;
+    // 이미 모든 아이템에 이미지가 있으면 폴링 스킵
+    const unfilledCount = menuData.items.filter((item) => !item.imageUrls?.length).length;
+    if (unfilledCount === 0) return;
+
+    let cancelled = false;
 
     pollImages(sessionId, menuData.items.length, (updatedDtos) => {
+      if (cancelled) return;
       setMenuData((prev) => {
         if (!prev) return prev;
         const updatedItems = prev.items.map((item) => {
           const dto = updatedDtos.find((d) => String(d.id) === item.id);
-          const imageUrls =
+          const newUrls =
               (dto as any)?.imageUrl
                   ? [(dto as any).imageUrl]
                   : dto?.imageUrls ?? [];
-          if (!imageUrls.length) return item;
-          return { ...item, imageUrls };
+          if (!newUrls.length) return item;
+          return { ...item, imageUrls: newUrls };
         });
         const next = { ...prev, items: updatedItems };
-        // 이미지 업데이트될 때마다 sessionStorage도 동기화
-        // 페이지 이동 후 돌아와도 다시 폴링 없이 바로 표시됨
         sessionStorage.setItem("menuData", JSON.stringify(next));
         return next;
       });
     });
-  }, [menuData?.items.length]);
+
+    return () => {
+      cancelled = true;
+    };
+    // analyzing이 false로 바뀌는 순간(pollSession 완료 후)에도 이미지 폴링이 시작되도록
+  }, [menuData?.items.length, analyzing]);
 
   const handleRecommend = async (params: {
     allergy: string; budget: string; numPeople: string; etc: string;
   }) => {
     setShowRecommendInput(false);
-    setIsRecommending(true); // 입력 모달 닫히고 로딩 오버레이 표시
+    setIsRecommending(true);
     try {
       const sessionId = sessionStorage.getItem("sessionId");
       if (!sessionId) throw new Error("세션 ID 없음");
@@ -463,10 +470,15 @@ export default function MenuPage() {
       const allergies = params.allergy || undefined;
 
       const entries = await requestRecommend(sessionId, preferences, allergies);
+
+      // [FIX 3] itemId를 String으로 명시 변환
       const results: RecommendItem[] = entries.map((e) => ({
         id: String(e.itemId),
         reason: e.reason,
       }));
+
+      console.log("[Recommend] results:", results.map((r) => r.id));
+      console.log("[Recommend] menuData ids:", menuData?.items.map((i) => i.id));
 
       setRecommendResults(results);
     } catch (e) {
@@ -476,16 +488,12 @@ export default function MenuPage() {
     }
   };
 
-  // 초기 로딩 (sessionStorage 읽기 전)
   if (loading) return <MenuListSkeleton />;
-
-  // 카메라에서 넘어와 분석 중인 상태 — 스켈레톤으로 대기
   if (analyzing) return <MenuListSkeleton />;
 
   return (
       <div className="relative min-h-screen bg-background">
 
-        {/* 추천 로딩 오버레이 — 모달 대신 전체 화면 위에 표시 */}
         {isRecommending && <RecommendLoadingOverlay />}
 
         {/* 헤더 */}
@@ -536,7 +544,8 @@ export default function MenuPage() {
                 onSubmit={handleRecommend}
             />
         )}
-        {recommendResults && menuData && (
+        {/* [FIX 3] menuData.items.length > 0 guard 추가 */}
+        {recommendResults && menuData && menuData.items.length > 0 && (
             <RecommendResultModal
                 results={recommendResults}
                 menuItems={menuData.items}

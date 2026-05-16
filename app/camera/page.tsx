@@ -95,9 +95,12 @@ export default function CameraPage() {
       const uploads = await issueUploadUrls(sessionId, files);
       await Promise.all(uploads.map((u, i) => uploadToGcs(u.uploadUrl, files[i])));
 
+      // [FIX 1] analyzeSession은 분석을 트리거만 하고 await하지 않음.
+      // READY까지의 폴링은 menu/page.tsx의 pollSession이 담당.
       setLoadingMsg(tx.startingAnalysis);
-      await analyzeSession(sessionId);
+      analyzeSession(sessionId).catch((err) => console.error("analyzeSession error:", err));
 
+      // 즉시 menu로 이동 → menu에서 스켈레톤 보여주면서 폴링 대기
       router.push("/menu");
     } catch (err) {
       console.error(err);
