@@ -13,7 +13,7 @@ export type MenuItem = {
   likelyIngredients: string[];
   potentialAllergens: string[];
   dietaryFlags: string[];
-  suitability: {
+  suitability?: {
     score: number;
     reason: string;
   };

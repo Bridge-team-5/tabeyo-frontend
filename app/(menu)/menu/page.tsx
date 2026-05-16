@@ -88,7 +88,7 @@ function MenuCard({
         <div className="h-[90px] w-[90px] shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
           {item.imageUrls?.[0] ? (
               <img
-                  src={item.imageUrls[0]}
+                  src={item.imageUrls![0]}
                   alt={item.translatedName || item.originalName}
                   className="h-full w-full object-cover"
               />
@@ -172,7 +172,7 @@ function CartModal({ onClose }: { onClose: () => void }) {
                       <div className="h-14 w-14 shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
                         {item.imageUrls?.[0] ? (
                             <img
-                                src={item.imageUrls[0]}
+                                src={item.imageUrls![0]}
                                 alt={item.translatedName || item.originalName}
                                 className="h-full w-full object-cover"
                             />
@@ -330,12 +330,13 @@ function RecommendResultModal({
             {results.map(({ id, reason }) => {
               const item = menuItems.find((m) => m.id === id);
               if (!item) return null;
+              const foundItem: MenuItem = item;
               return (
                   <MenuCard
                       key={id}
-                      item={item}
+                      item={foundItem}
                       recommendReason={reason}
-                      onAdd={() => addToCart(item)}
+                      onAdd={() => addToCart(foundItem)}
                       added={isInCart(id)}
                       onClick={() => router.push(`/menu/detailed/${id}`)}
                   />
@@ -373,9 +374,10 @@ export default function MenuPage() {
       }
     } else {
       // 개발용 더미 데이터
+      const dummyBoundingBox: [number, number, number, number] = [0, 0, 0, 0];
       setMenuData({
         detectedLanguage: "ja",
-        items: Array.from({ length: 6 }, (_, i) => ({
+        items: Array.from({ length: 6 }, (_, i): MenuItem => ({
           id: `${i}`,
           originalName: `メニュー ${i + 1}`,
           translatedName: `Menu Item ${i + 1}`,
@@ -388,8 +390,8 @@ export default function MenuPage() {
           potentialAllergens: i % 2 === 0 ? ["gluten", "soy"] : [],
           dietaryFlags: [],
           hasImageInMenu: false,
-          boundingBox: [0, 0, 0, 0] as [number, number, number, number],
-          imageUrls: [],
+          boundingBox: dummyBoundingBox,
+          imageUrls: [] as string[],
           imageSearchQuery: `menu item ${i + 1}`,
         })),
       });
