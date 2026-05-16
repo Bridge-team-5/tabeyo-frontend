@@ -85,7 +85,7 @@ export default function HomePage() {
                   width={150}
                   height={40}
                   priority
-                  className="h-auto w-auto object-contain"
+                  className="h-auto w-[150px] object-contain"
               />
             </div>
             <p className="text-caption text-muted tracking-wide">

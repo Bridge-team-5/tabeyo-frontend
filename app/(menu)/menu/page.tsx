@@ -10,6 +10,45 @@ import { useLanguage } from "@/context/language-context";
 import { languages } from "@/constants/language";
 import type { MenuItem, MenuResponse, RecommendItem } from "@/types/menu";
 
+// ── 스켈레톤 ──────────────────────────────────────────────────
+function Skeleton({ className }: { className?: string }) {
+  return (
+      <div className={`animate-pulse rounded-xl bg-black/[0.06] ${className ?? ""}`} />
+  );
+}
+
+function MenuCardSkeleton() {
+  return (
+      <div className="flex items-center gap-3 rounded-2xl bg-surface p-3">
+        <Skeleton className="h-[90px] w-[90px] shrink-0 !rounded-xl" />
+        <div className="flex-1 flex flex-col gap-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+        <Skeleton className="h-9 w-9 shrink-0 !rounded-full" />
+      </div>
+  );
+}
+
+function MenuListSkeleton() {
+  return (
+      <div className="relative min-h-screen bg-background">
+        {/* 헤더 */}
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-background/80 px-5 py-4 backdrop-blur-sm border-b border-black/[0.06]">
+          <Skeleton className="h-6 w-6" />
+          <Skeleton className="h-8 w-24 !rounded-full" />
+        </div>
+        {/* 카드 목록 */}
+        <div className="flex flex-col gap-3 px-4 py-4 pb-28">
+          {Array.from({ length: 5 }).map((_, i) => (
+              <MenuCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+  );
+}
+
 // ── 고추 아이콘 ───────────────────────────────────────────────
 function Spiciness({ level }: { level: number }) {
   if (!level) return null;
@@ -46,7 +85,15 @@ function MenuCard({
       >
         {/* 사진 */}
         <div className="h-[90px] w-[90px] shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
-          <span className="text-caption text-muted">photo</span>
+          {item.imageUrls?.[0] ? (
+              <img
+                  src={item.imageUrls[0]}
+                  alt={item.translatedName || item.originalName}
+                  className="h-full w-full object-cover"
+              />
+          ) : (
+              <span className="text-caption text-muted">photo</span>
+          )}
         </div>
 
         {/* 텍스트 */}
@@ -75,9 +122,7 @@ function MenuCard({
         <button
             onClick={(e) => { e.stopPropagation(); onAdd(); }}
             className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
-                added
-                    ? "bg-primary border-primary"
-                    : "bg-transparent border-muted/40"
+                added ? "bg-primary border-primary" : "bg-transparent border-muted/40"
             }`}
         >
           {added
@@ -123,8 +168,16 @@ function CartModal({ onClose }: { onClose: () => void }) {
             ) : (
                 cart.map(({ item, quantity }) => (
                     <div key={item.id} className="flex items-center gap-3">
-                      <div className="h-14 w-14 shrink-0 rounded-xl bg-background flex items-center justify-center">
-                        <span className="text-tiny text-muted">photo</span>
+                      <div className="h-14 w-14 shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
+                        {item.imageUrls?.[0] ? (
+                            <img
+                                src={item.imageUrls[0]}
+                                alt={item.translatedName || item.originalName}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <span className="text-tiny text-muted">photo</span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-caption font-semibold text-primary truncate">
@@ -205,21 +258,17 @@ function RecommendInputModal({
   const [etc, setEtc] = useState("");
 
   const inputClass =
-      "flex-1 rounded-xl border border-black/[0.12] bg-transparent px-3 py-2.5 text-caption text-primary outline-none focus:border-primary transition-colors";
+      "flex-1 rounded-xl bg-background px-3 py-2.5 text-caption text-primary outline-none placeholder:text-muted/50";
 
   return (
       <div
-          className="fixed inset-0 z-50 flex flex-col justify-start pt-20 bg-black/30"
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40"
           onClick={onClose}
       >
         <div
-            className="mx-4 rounded-3xl bg-surface p-5 flex flex-col gap-4"
+            className="flex flex-col gap-4 rounded-t-3xl bg-surface px-5 pt-5 pb-10"
             onClick={(e) => e.stopPropagation()}
         >
-          <button onClick={onClose} className="self-end">
-            <X size={18} className="text-muted" />
-          </button>
-
           {[
             { label: tx.allergy, value: allergy, set: setAllergy },
             { label: tx.budget, value: budget, set: setBudget },
@@ -279,13 +328,12 @@ function RecommendResultModal({
             {results.map(({ id, reason }) => {
               const item = menuItems.find((m) => m.id === id);
               if (!item) return null;
-              const safeItem: MenuItem = item;
               return (
                   <MenuCard
                       key={id}
-                      item={safeItem}
+                      item={item}
                       recommendReason={reason}
-                      onAdd={() => addToCart(safeItem)}
+                      onAdd={() => addToCart(item)}
                       added={isInCart(id)}
                       onClick={() => router.push(`/menu/detailed/${id}`)}
                   />
@@ -305,6 +353,7 @@ export default function MenuPage() {
   const tx = languages[language];
 
   const [menuData, setMenuData] = useState<MenuResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
   const [showRecommendInput, setShowRecommendInput] = useState(false);
   const [recommendResults, setRecommendResults] = useState<RecommendItem[] | null>(null);
@@ -336,14 +385,17 @@ export default function MenuPage() {
           likelyIngredients: ["rice", "soy sauce"],
           potentialAllergens: i % 2 === 0 ? ["gluten", "soy"] : [],
           dietaryFlags: [],
-          suitability: { score: 0.8, reason: "Good match" },
           hasImageInMenu: false,
           boundingBox: [0, 0, 0, 0],
+          imageUrls: [],
           imageSearchQuery: `menu item ${i + 1}`,
         })),
       });
     }
+    setLoading(false);
   }, []);
+
+  if (loading) return <MenuListSkeleton />;
 
   const handleRecommend = async (params: {
     allergy: string; budget: string; numPeople: string; etc: string;

@@ -51,6 +51,76 @@ function Spiciness({ level }: { level: number }) {
   );
 }
 
+// 깜빡이는 스켈레톤 블록
+function Skeleton({ className }: { className?: string }) {
+  return (
+      <div className={`animate-pulse rounded-xl bg-black/[0.06] ${className ?? ""}`} />
+  );
+}
+
+function DetailSkeleton() {
+  return (
+      <div className="min-h-screen bg-surface pb-28">
+        {/* 헤더 */}
+        <div className="flex items-center bg-surface px-5 py-4 border-b border-black/[0.06]">
+          <div className="h-6 w-6 rounded-lg bg-black/[0.06] animate-pulse" />
+        </div>
+
+        <div className="px-5 py-5 flex flex-col gap-6">
+          {/* 이름 + 가격 */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-7 w-2/3" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-5 w-1/4 mt-1" />
+          </div>
+
+          {/* 사진 가로 스크롤 */}
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[120px] w-[120px] shrink-0 !rounded-2xl" />
+            ))}
+          </div>
+
+          {/* 설명 */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+
+          {/* 재료 */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+
+          {/* 알레르기 태그 */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-3 w-24" />
+            <div className="flex gap-2">
+              <Skeleton className="h-6 w-16 !rounded-full" />
+              <Skeleton className="h-6 w-16 !rounded-full" />
+              <Skeleton className="h-6 w-12 !rounded-full" />
+            </div>
+          </div>
+
+          {/* 성분 박스 */}
+          <div className="rounded-2xl bg-background p-4 flex flex-col gap-2">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+        </div>
+
+        {/* 하단 버튼 */}
+        <div className="fixed bottom-0 left-0 right-0 bg-surface/90 px-5 py-4 backdrop-blur-sm border-t border-black/[0.06]">
+          <Skeleton className="h-14 w-full !rounded-full" />
+        </div>
+      </div>
+  );
+}
+
 export default function MenuDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -61,6 +131,7 @@ export default function MenuDetailPage() {
   const tx = t[language];
 
   const [item, setItem] = useState<MenuItem | null>(null);
+  const [loading, setLoading] = useState(true);
   const isInCart = cart.some((c) => c.item.id === id);
 
   useEffect(() => {
@@ -73,7 +144,10 @@ export default function MenuDetailPage() {
         setItem(null);
       }
     }
+    setLoading(false);
   }, [id]);
+
+  if (loading) return <DetailSkeleton />;
 
   if (!item) {
     return (
@@ -109,10 +183,7 @@ export default function MenuDetailPage() {
           </div>
 
           {/* 사진 가로 스크롤 */}
-          <div
-              className="flex gap-3 overflow-x-auto pb-1"
-              style={{ scrollbarWidth: "none" }}
-          >
+          <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             {[0, 1, 2].map((i) => (
                 <div
                     key={i}
@@ -124,16 +195,12 @@ export default function MenuDetailPage() {
           </div>
 
           {/* 상세 설명 */}
-          <p className="text-body text-primary leading-relaxed">
-            {item.fullExplanation}
-          </p>
+          <p className="text-body text-primary leading-relaxed">{item.fullExplanation}</p>
 
           {/* 매운 정도 */}
           {item.spicinessLevel > 0 && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">
-                  {tx.spiciness}
-                </p>
+                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">{tx.spiciness}</p>
                 <Spiciness level={item.spicinessLevel} />
               </div>
           )}
@@ -141,9 +208,7 @@ export default function MenuDetailPage() {
           {/* 재료 */}
           {item.likelyIngredients.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">
-                  {tx.ingredients}
-                </p>
+                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">{tx.ingredients}</p>
                 <p className="text-body text-primary">{item.likelyIngredients.join(", ")}</p>
               </div>
           )}
@@ -151,15 +216,10 @@ export default function MenuDetailPage() {
           {/* 알레르기 */}
           {item.potentialAllergens.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">
-                  {tx.allergens}
-                </p>
+                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">{tx.allergens}</p>
                 <div className="flex flex-wrap gap-2">
                   {item.potentialAllergens.map((a) => (
-                      <span
-                          key={a}
-                          className="rounded-full bg-red-100 px-3 py-1 text-tiny font-semibold text-red-600"
-                      >
+                      <span key={a} className="rounded-full bg-red-100 px-3 py-1 text-tiny font-semibold text-red-600">
                   {a}
                 </span>
                   ))}
@@ -170,15 +230,10 @@ export default function MenuDetailPage() {
           {/* 식이 정보 */}
           {item.dietaryFlags.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">
-                  {tx.dietary}
-                </p>
+                <p className="text-tiny font-semibold text-muted uppercase tracking-wide">{tx.dietary}</p>
                 <div className="flex flex-wrap gap-2">
                   {item.dietaryFlags.map((f) => (
-                      <span
-                          key={f}
-                          className="rounded-full bg-green-100 px-3 py-1 text-tiny font-semibold text-green-700"
-                      >
+                      <span key={f} className="rounded-full bg-green-100 px-3 py-1 text-tiny font-semibold text-green-700">
                   {f}
                 </span>
                   ))}
@@ -198,15 +253,9 @@ export default function MenuDetailPage() {
         {/* 하단 고정 버튼 */}
         <div className="fixed bottom-0 left-0 right-0 bg-surface/90 px-5 py-4 backdrop-blur-sm border-t border-black/[0.06]">
           <button
-              onClick={() => {
-                if (item && !isInCart) {
-                  addToCart(item);
-                }
-              }}
+              onClick={() => { if (item && !isInCart) addToCart(item); }}
               className={`w-full rounded-full py-4 text-body font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
-                  isInCart
-                      ? "bg-muted/20 text-muted"
-                      : "bg-primary text-surface"
+                  isInCart ? "bg-muted/20 text-muted" : "bg-primary text-surface"
               }`}
           >
             {isInCart
