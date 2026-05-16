@@ -11,24 +11,20 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // 1. 초기값 설정: 브라우저 환경이라면 localStorage에서 불러오고, 없으면 기본값 'en'
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("app_lang") as Language;
-      if (saved === "en" || saved === "ko" || saved === "ja") {
-        return saved;
-      }
-    }
-    return "en";
-  });
+export function LanguageProvider({
+                                   children,
+                                   initialLang = "en",
+                                 }: {
+  children: React.ReactNode;
+  initialLang?: Language;
+}) {
+  // SSR에서 layout이 cookie를 읽어 initialLang을 내려주므로
+  // 서버/클라이언트 첫 렌더가 항상 동일 → hydration mismatch 없음
+  const [language, setLanguageState] = useState<Language>(initialLang);
 
-  // 2. 언어가 변경될 때마다 localStorage에 저장
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("app_lang", lang);
-    }
+    document.cookie = `app_lang=${lang}; path=/; max-age=${60 * 60 * 24 * 365}`;
   };
 
   return (

@@ -17,18 +17,14 @@ export default function HomePage() {
   ];
 
   const currentLang = languageOptions.find((l) => l.code === language);
-
   const tx = languages[language] || languages.en;
 
   return (
-      <main
-          className="relative flex min-h-screen flex-col items-center justify-center bg-bg px-6 overflow-hidden">
+      <main className="relative flex min-h-screen flex-col items-center justify-center bg-bg px-6 overflow-hidden">
 
         {/* 배경 장식 */}
-        <div
-            className="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-black/[0.04]"/>
-        <div
-            className="pointer-events-none absolute -bottom-16 -left-16 h-60 w-60 rounded-full bg-black/[0.04]"/>
+        <div className="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-black/[0.04]" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-60 w-60 rounded-full bg-black/[0.04]" />
 
         {/* 언어 드롭다운 */}
         <div className="fixed right-5 top-5 z-50">
@@ -46,7 +42,9 @@ export default function HomePage() {
 
           {open && (
               <div
-                  className="absolute right-0 top-12 min-w-[150px] overflow-hidden rounded-2xl bg-surface shadow-lg">
+                  style={{ width: "9rem" }}
+                  className="absolute right-0 mt-2 origin-top-right rounded-2xl bg-surface p-1.5 shadow-xl ring-1 ring-black/[0.04] animate-fadein"
+              >
                 {languageOptions.map((lang, i) => {
                   const isSelected = lang.code === language;
                   return (
@@ -68,7 +66,7 @@ export default function HomePage() {
                     <span>{lang.flag}</span>
                     <span>{lang.label}</span>
                   </span>
-                        {isSelected && <Check size={14} className="text-primary shrink-0"/>}
+                        {isSelected && <Check size={14} className="text-primary shrink-0" />}
                       </button>
                   );
                 })}
@@ -92,7 +90,7 @@ export default function HomePage() {
               className="flex items-center gap-2.5 rounded-full bg-primary px-9 py-[18px] text-title font-bold text-surface shadow-md transition-all active:scale-95 active:shadow-sm"
           >
             <span>{tx.homeScanBtn}</span>
-            <Camera size={20} className="text-surface"/>
+            <Camera size={20} className="text-surface" />
           </Link>
         </div>
 
