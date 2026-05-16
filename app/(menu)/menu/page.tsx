@@ -8,6 +8,7 @@ import {
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
 import { languages } from "@/constants/language";
+import { requestRecommend } from "@/lib/api";
 import type { MenuItem, MenuResponse, RecommendItem } from "@/types/menu";
 
 // ── 스켈레톤 ──────────────────────────────────────────────────
@@ -308,6 +309,7 @@ function RecommendResultModal({
 }) {
   const { addToCart, cart } = useCart();
   const router = useRouter();
+  // id는 string으로 통일되어 있으므로 단순 비교
   const isInCart = (id: string) => cart.some((c) => c.item.id === id);
 
   return (
@@ -386,7 +388,7 @@ export default function MenuPage() {
           potentialAllergens: i % 2 === 0 ? ["gluten", "soy"] : [],
           dietaryFlags: [],
           hasImageInMenu: false,
-          boundingBox: [0, 0, 0, 0],
+          boundingBox: [0, 0, 0, 0] as [number, number, number, number],
           imageUrls: [],
           imageSearchQuery: `menu item ${i + 1}`,
         })),
@@ -403,13 +405,28 @@ export default function MenuPage() {
     setShowRecommendInput(false);
     setIsRecommending(true);
     try {
-      const res = await fetch("/api/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...params, menuItems: menuData?.items }),
-      });
-      const data: RecommendItem[] = await res.json();
-      setRecommendResults(data);
+      const sessionId = sessionStorage.getItem("sessionId");
+      if (!sessionId) throw new Error("세션 ID 없음");
+
+      // budget, numPeople, etc → preferences 문자열로 병합
+      const preferences = [
+        params.budget && `budget: ${params.budget}`,
+        params.numPeople && `people: ${params.numPeople}`,
+        params.etc,
+      ].filter(Boolean).join(", ") || undefined;
+
+      const allergies = params.allergy || undefined;
+
+      // 백엔드 API 직접 호출 (api.ts의 requestRecommend 사용)
+      const entries = await requestRecommend(sessionId, preferences, allergies);
+
+      // RecommendationEntry(itemId: number) → RecommendItem(id: string) 변환
+      const results: RecommendItem[] = entries.map((e) => ({
+        id: String(e.itemId),
+        reason: e.reason,
+      }));
+
+      setRecommendResults(results);
     } catch (e) {
       console.error(e);
     } finally {

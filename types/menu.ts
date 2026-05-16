@@ -19,6 +19,7 @@ export type MenuItem = {
   };
   hasImageInMenu: boolean;
   boundingBox: [number, number, number, number];
+  imageUrls?: string[];
   imageSearchQuery: string;
 };
 
