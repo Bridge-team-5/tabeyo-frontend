@@ -267,7 +267,7 @@ function RecommendInputModal({
           onClick={onClose}
       >
         <div
-            className="flex flex-col gap-3 rounded-t-3xl bg-surface px-5 pt-4 pb-8"
+            className="flex flex-col gap-3 rounded-t-3xl bg-surface px-4 pt-4 pb-8 max-h-[90svh] overflow-y-auto w-full"
             onClick={(e) => e.stopPropagation()}
         >
           {[
@@ -279,7 +279,7 @@ function RecommendInputModal({
               <div key={label} className="flex items-center gap-3">
                 <span className="w-24 text-caption font-semibold text-primary shrink-0">{label}</span>
                 <input
-                    className={inputClass}
+                    className={inputClass + "min-w-0 w-0"}
                     value={value}
                     onChange={(e) => set(e.target.value)}
                 />
