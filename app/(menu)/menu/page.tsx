@@ -9,7 +9,25 @@ import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
 import { languages } from "@/constants/language";
 import { requestRecommend, pollImages } from "@/lib/api";
+import type { MenuItemDto } from "@/lib/api";
 import type { MenuItem, MenuResponse, RecommendItem } from "@/types/menu";
+
+// 백엔드 raw 데이터 → MenuItem 정규화
+// id: number→string, imageUrl(단수)→imageUrls(배열)
+function normalizeMenuItem(raw: MenuItemDto): MenuItem {
+  return {
+    ...raw,
+    id: String(raw.id),
+    category: raw.category ?? "",
+    price: raw.price ?? { amount: 0, currency: "" },
+    spicinessLevel: raw.spicinessLevel ?? 0,
+    boundingBox: (raw.boundingBox as [number, number, number, number]) ?? [0, 0, 0, 0],
+    imageUrls: (raw as MenuItemDto & { imageUrl?: string }).imageUrl
+        ? [(raw as MenuItemDto & { imageUrl?: string }).imageUrl!]
+        : (raw.imageUrls ?? []),
+    imageSearchQuery: raw.imageSearchQuery ?? "",
+  };
+}
 
 // ── 스켈레톤 ──────────────────────────────────────────────────
 function Skeleton({ className }: { className?: string }) {
@@ -368,14 +386,21 @@ export default function MenuPage() {
     const raw = sessionStorage.getItem("menuData");
     if (raw) {
       try {
-        setMenuData(JSON.parse(raw));
+        const parsed = JSON.parse(raw);
+        const normalized: MenuResponse = {
+          ...parsed,
+          items: parsed.items.map(normalizeMenuItem),
+        };
+        // normalize된 데이터로 덮어써서 detail 페이지도 올바른 구조를 읽게 함
+        sessionStorage.setItem("menuData", JSON.stringify(normalized));
+        setMenuData(normalized);
       } catch {
         console.error("Failed to parse menuData");
       }
     } else {
       // 개발용 더미 데이터
       const dummyBoundingBox: [number, number, number, number] = [0, 0, 0, 0];
-      setMenuData({
+      const dummy: MenuResponse = {
         detectedLanguage: "ja",
         items: Array.from({ length: 6 }, (_, i): MenuItem => ({
           id: `${i}`,
@@ -394,7 +419,10 @@ export default function MenuPage() {
           imageUrls: [] as string[],
           imageSearchQuery: `menu item ${i + 1}`,
         })),
-      });
+      };
+      // 더미 데이터도 sessionStorage에 저장
+      sessionStorage.setItem("menuData", JSON.stringify(dummy));
+      setMenuData(dummy);
     }
     setLoading(false);
   }, []);
