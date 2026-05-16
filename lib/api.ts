@@ -123,6 +123,32 @@ export async function pollSession(
   throw new Error("분석 시간 초과");
 }
 
+// ─── 이미지 폴링 ────────────────────────────────────────────────────────
+
+export async function pollImages(
+    sessionId: string,
+    itemCount: number,
+    onUpdate: (items: MenuItemDto[]) => void,
+    intervalMs = 3000,
+    timeoutMs = 60000,
+) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+
+    const res = await fetch(`${BASE_URL}/sessions/${sessionId}`);
+    if (!res.ok) break;
+    const session = (await res.json()) as SessionResponse;
+
+    onUpdate(session.items);
+
+    // 모든 아이템에 이미지가 채워지면 종료
+    const filled = session.items.filter((item) => item.imageUrls?.length).length;
+    if (filled >= itemCount) break;
+  }
+}
+
 // ─── 추천 요청 ────────────────────────────────────────────────────────────────
 
 export async function requestRecommend(

@@ -8,7 +8,7 @@ import {
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
 import { languages } from "@/constants/language";
-import { requestRecommend } from "@/lib/api";
+import { requestRecommend, pollImages } from "@/lib/api";
 import type { MenuItem, MenuResponse, RecommendItem } from "@/types/menu";
 
 // ── 스켈레톤 ──────────────────────────────────────────────────
@@ -398,6 +398,30 @@ export default function MenuPage() {
     }
     setLoading(false);
   }, []);
+
+  // 이미지 폴링: menuData가 세팅되면 sessionId가 있을 때만 시작
+  useEffect(() => {
+    const sessionId = sessionStorage.getItem("sessionId");
+    if (!sessionId || !menuData) return;
+
+    // 이미 모든 아이템에 이미지가 있으면 폴링 불필요
+    const alreadyFilled = menuData.items.every((item) => item.imageUrls?.length);
+    if (alreadyFilled) return;
+
+    pollImages(sessionId, menuData.items.length, (updatedDtos) => {
+      setMenuData((prev) => {
+        if (!prev) return prev;
+        // MenuItemDto(id: number) → MenuItem(id: string) 매핑해서 imageUrls만 업데이트
+        const updatedItems = prev.items.map((item) => {
+          const dto = updatedDtos.find((d) => String(d.id) === item.id);
+          if (!dto?.imageUrls?.length) return item;
+          return { ...item, imageUrls: dto.imageUrls };
+        });
+        return { ...prev, items: updatedItems };
+      });
+    });
+    // menuData.items.length가 바뀔 때만 재실행 (초기 1회)
+  }, [menuData?.items.length]);
 
   if (loading) return <MenuListSkeleton />;
 
