@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ShoppingCart, X, Plus, Minus, Trash2,
@@ -126,7 +126,7 @@ function MenuCard({
         <div className="h-[90px] w-[90px] shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
           {item.imageUrls?.[0] ? (
               <img
-                  src={item.imageUrls![0]}
+                  src={item.imageUrls[0]}
                   alt={item.translatedName || item.originalName}
                   className="h-full w-full object-cover"
               />
@@ -197,7 +197,7 @@ function CartModal({ onClose }: { onClose: () => void }) {
                     <div key={item.id} className="flex items-center gap-3">
                       <div className="h-14 w-14 shrink-0 rounded-xl bg-background flex items-center justify-center overflow-hidden">
                         {item.imageUrls?.[0] ? (
-                            <img src={item.imageUrls![0]} alt={item.translatedName || item.originalName} className="h-full w-full object-cover" />
+                            <img src={item.imageUrls[0]} alt={item.translatedName || item.originalName} className="h-full w-full object-cover" />
                         ) : (
                             <span className="text-tiny text-muted">photo</span>
                         )}
@@ -301,7 +301,7 @@ function RecommendResultModal({
 }) {
   const { addToCart, cart } = useCart();
   const router = useRouter();
-  const isInCart = (id: string) => cart.some((c) => c.item.id === id);
+  const isInCart = (id: string) => cart.some((c) => String(c.item.id) === String(id));
 
   return (
       <div className="fixed inset-0 z-50 flex flex-col justify-start pt-20 bg-black/30" onClick={onClose}>
@@ -311,10 +311,9 @@ function RecommendResultModal({
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-5 flex flex-col gap-3">
             {results.map(({ id, reason }) => {
-              // [FIX 3] 양쪽 모두 String()으로 변환해 타입 불일치 방지
               const item = menuItems.find((m) => String(m.id) === String(id));
               if (!item) {
-                console.warn(`[Recommend] item not found — id: ${id}, available ids:`, menuItems.map((m) => m.id));
+                console.warn(`[Recommend] item not found — id: ${id}`);
                 return null;
               }
               return (
@@ -349,7 +348,12 @@ export default function MenuPage() {
   const [recommendResults, setRecommendResults] = useState<RecommendItem[] | null>(null);
   const [isRecommending, setIsRecommending] = useState(false);
 
-  const isInCart = (id: string) => cart.some((c) => c.item.id === id);
+  const menuDataRef = useRef<MenuResponse | null>(null);
+  useEffect(() => {
+    menuDataRef.current = menuData;
+  }, [menuData]);
+
+  const isInCart = (id: string) => cart.some((c) => String(c.item.id) === String(id));
 
   useEffect(() => {
     const raw = sessionStorage.getItem("menuData");
@@ -370,7 +374,6 @@ export default function MenuPage() {
         setLoading(false);
       }
     } else if (sessionId) {
-      // [FIX 1] 카메라에서 즉시 넘어온 상태 — analyzing 스켈레톤 보여주면서 폴링
       setAnalyzing(true);
       setLoading(false);
 
@@ -419,12 +422,10 @@ export default function MenuPage() {
     }
   }, []);
 
-  // [FIX 2] 이미지 폴링 — analyzing 끝난 후에도 재실행되도록 의존성에 analyzing 추가
   useEffect(() => {
     const sessionId = sessionStorage.getItem("sessionId");
     if (!sessionId || !menuData || analyzing) return;
 
-    // 이미 모든 아이템에 이미지가 있으면 폴링 스킵
     const unfilledCount = menuData.items.filter((item) => !item.imageUrls?.length).length;
     if (unfilledCount === 0) return;
 
@@ -432,27 +433,27 @@ export default function MenuPage() {
 
     pollImages(sessionId, menuData.items.length, (updatedDtos) => {
       if (cancelled) return;
-      setMenuData((prev) => {
-        if (!prev) return prev;
-        const updatedItems = prev.items.map((item) => {
-          const dto = updatedDtos.find((d) => String(d.id) === item.id);
-          const newUrls =
-              (dto as any)?.imageUrl
-                  ? [(dto as any).imageUrl]
-                  : dto?.imageUrls ?? [];
-          if (!newUrls.length) return item;
-          return { ...item, imageUrls: newUrls };
-        });
-        const next = { ...prev, items: updatedItems };
-        sessionStorage.setItem("menuData", JSON.stringify(next));
-        return next;
+
+      const currentMenuData = menuDataRef.current;
+      if (!currentMenuData) return;
+
+      const updatedItems = currentMenuData.items.map((item) => {
+        const dto = updatedDtos.find((d) => String(d.id) === item.id);
+        const newUrls = (dto as any)?.imageUrl
+            ? [(dto as any).imageUrl]
+            : dto?.imageUrls ?? [];
+        if (!newUrls.length) return item;
+        return { ...item, imageUrls: newUrls };
       });
+
+      const next = { ...currentMenuData, items: updatedItems };
+      sessionStorage.setItem("menuData", JSON.stringify(next));
+      setMenuData(next);
     });
 
     return () => {
       cancelled = true;
     };
-    // analyzing이 false로 바뀌는 순간(pollSession 완료 후)에도 이미지 폴링이 시작되도록
   }, [menuData?.items.length, analyzing]);
 
   const handleRecommend = async (params: {
@@ -474,29 +475,23 @@ export default function MenuPage() {
 
       const entries = await requestRecommend(sessionId, preferences, allergies);
 
-      // [FIX 3] itemId를 String으로 명시 변환
       const results: RecommendItem[] = entries.map((e) => ({
         id: String(e.itemId),
         reason: e.reason,
       }));
 
-      console.log("[Recommend] results:", results.map((r) => r.id));
-      console.log("[Recommend] menuData ids:", menuData?.items.map((i) => i.id));
-
       setRecommendResults(results);
     } catch (e) {
-      console.error(e);
+      console.error("추천 오류:", e);
     } finally {
       setIsRecommending(false);
     }
   };
 
-  if (loading) return <MenuListSkeleton />;
-  if (analyzing) return <MenuListSkeleton />;
+  if (loading || analyzing) return <MenuListSkeleton />;
 
   return (
       <div className="relative min-h-screen bg-background">
-
         {isRecommending && <RecommendLoadingOverlay />}
 
         {/* 헤더 */}
@@ -547,7 +542,7 @@ export default function MenuPage() {
                 onSubmit={handleRecommend}
             />
         )}
-        {/* [FIX 3] menuData.items.length > 0 guard 추가 */}
+
         {recommendResults && menuData && menuData.items.length > 0 && (
             <RecommendResultModal
                 results={recommendResults}
