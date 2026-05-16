@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { X, ArrowRight, Camera } from "lucide-react";
 import { createSession, issueUploadUrls, uploadToGcs, analyzeSession } from "@/lib/api";
 import { useLanguage } from "@/context/language-context";
+import { languages } from "@/constants/language";
 
 const MAX_PHOTOS = 10;
 
 export default function CameraPage() {
   const router = useRouter();
   const { language } = useLanguage();
+  const tx = languages[language];
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -85,23 +87,21 @@ export default function CameraPage() {
     try {
       const files = photos.map((p) => p.file);
 
-      setLoadingMsg("세션 생성 중...");
+      setLoadingMsg(tx.creatingSession);
       const sessionId = await createSession(language);
       sessionStorage.setItem("sessionId", sessionId);
 
-      setLoadingMsg("이미지 업로드 중...");
+      setLoadingMsg(tx.uploadingImages);
       const uploads = await issueUploadUrls(sessionId, files);
       await Promise.all(uploads.map((u, i) => uploadToGcs(u.uploadUrl, files[i])));
 
-      setLoadingMsg("분석 시작 중...");
+      setLoadingMsg(tx.startingAnalysis);
       await analyzeSession(sessionId);
 
-      // ✅ 분석 요청만 보내고 바로 메뉴 페이지로 이동
-      // 나머지 폴링은 menu 페이지에서 스켈레톤 UI로 처리
       router.push("/menu");
     } catch (err) {
       console.error(err);
-      setLoadingMsg("오류가 발생했습니다. 다시 시도해주세요.");
+      setLoadingMsg(tx.analysisError);
       setTimeout(() => {
         setIsLoading(false);
         setLoadingMsg("");

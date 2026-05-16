@@ -1,5 +1,11 @@
 export const languages = {
   en: {
+    // Camera page
+    creatingSession: "Creating session...",
+    uploadingImages: "Uploading images...",
+    startingAnalysis: "Starting analysis...",
+    analysisError: "An error occurred. Please try again.",
+
     // Main page
     homeSubtitle: "Scan any menu · Get instant explanations",
     homeScanBtn: "Scan Menu",
@@ -34,6 +40,12 @@ export const languages = {
   },
 
   ko: {
+    // Camera page
+    creatingSession: "세션 생성 중...",
+    uploadingImages: "이미지 업로드 중...",
+    startingAnalysis: "분석 시작 중...",
+    analysisError: "오류가 발생했습니다. 다시 시도해주세요.",
+
     // Main page
     homeSubtitle: "메뉴판을 스캔하고 실시간 설명을 확인하세요",
     homeScanBtn: "메뉴 스캔하기",
@@ -68,6 +80,12 @@ export const languages = {
   },
 
   ja: {
+    // Camera page
+    creatingSession: "セッション作成中...",
+    uploadingImages: "画像アップロード中...",
+    startingAnalysis: "分析開始中...",
+    analysisError: "エラーが発生しました。もう一度お試しください。",
+
     // Main page
     homeSubtitle: "メニューをスキャンして、即時解説を確認しましょう",
     homeScanBtn: "メニューをスキャン",
