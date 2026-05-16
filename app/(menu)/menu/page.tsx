@@ -259,14 +259,15 @@ function RecommendInputModal({
   const [etc, setEtc] = useState("");
 
   const inputClass =
-      "flex-1 rounded-xl bg-background px-3 py-2.5 text-caption text-primary outline-none placeholder:text-muted/50 border border-muted/20 focus:border-primary transition-colors";
+      "flex-1 rounded-xl bg-background px-3 py-2 text-caption text-primary outline-none placeholder:text-muted/50 border border-muted/20 focus:border-primary transition-colors";
+
   return (
       <div
           className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40"
           onClick={onClose}
       >
         <div
-            className="flex flex-col gap-4 rounded-t-3xl bg-surface px-5 pt-5 pb-10"
+            className="flex flex-col gap-3 rounded-t-3xl bg-surface px-5 pt-4 pb-8"
             onClick={(e) => e.stopPropagation()}
         >
           {[
@@ -287,7 +288,7 @@ function RecommendInputModal({
 
           <button
               onClick={() => onSubmit({ allergy, budget, numPeople, etc })}
-              className="mt-1 w-full rounded-full bg-primary py-3.5 text-body font-bold text-surface active:scale-[0.98] transition-transform"
+              className="mt-1 w-full rounded-full bg-primary py-3 text-body font-bold text-surface active:scale-[0.98] transition-transform"
           >
             {tx.done}
           </button>
