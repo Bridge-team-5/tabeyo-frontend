@@ -259,8 +259,7 @@ function RecommendInputModal({
   const [etc, setEtc] = useState("");
 
   const inputClass =
-      "flex-1 rounded-xl bg-background px-3 py-2.5 text-caption text-primary outline-none placeholder:text-muted/50";
-
+      "flex-1 rounded-xl bg-background px-3 py-2.5 text-caption text-primary outline-none placeholder:text-muted/50 border border-muted/20 focus:border-primary transition-colors";
   return (
       <div
           className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40"
