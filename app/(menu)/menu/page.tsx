@@ -429,8 +429,12 @@ export default function MenuPage() {
         if (!prev) return prev;
         const updatedItems = prev.items.map((item) => {
           const dto = updatedDtos.find((d) => String(d.id) === item.id);
-          if (!dto?.imageUrls?.length) return item;
-          return { ...item, imageUrls: dto.imageUrls };
+          const imageUrls =
+              (dto as any)?.imageUrl
+                  ? [(dto as any).imageUrl]
+                  : dto?.imageUrls ?? [];
+          if (!imageUrls.length) return item;
+          return { ...item, imageUrls };
         });
         const next = { ...prev, items: updatedItems };
         // 이미지 업데이트될 때마다 sessionStorage도 동기화

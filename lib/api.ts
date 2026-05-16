@@ -143,7 +143,7 @@ export async function pollImages(
 
     onUpdate(session.items);
 
-    const filled = session.items.filter((item) => item.imageUrls?.length).length;
+    const filled = session.items.filter((item) => item.imageUrls?.length || (item as any).imageUrl).length;
     if (filled >= itemCount) break;
   }
 }
